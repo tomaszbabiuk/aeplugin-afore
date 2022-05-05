@@ -15,7 +15,7 @@ apply plugin: "org.jetbrains.kotlin.kapt"
 apply plugin: 'com.github.johnrengelman.shadow'
 
 group = 'eu.automateeverything'
-version = '1.0'
+version = '0.1.0'
 ext.pluginsDir = '../automate-everything/output/plugins'
 
 repositories {
@@ -30,7 +30,7 @@ jar {
     manifest {
         attributes 'Plugin-Class': "eu.automateeverything.aforeplugin.AforePlugin",
                 'Plugin-Id': "afore",
-                'Plugin-Version': "1.0-dev",
+                'Plugin-Version': "0.1.0",
                 'Plugin-Provider': "Tomasz Babiuk",
                 'Plugin-Dependencies': ""
     }
@@ -40,11 +40,6 @@ dependencies {
     //projects
     shadow 'eu.automateeverything:data:0.1'
     shadow 'eu.automateeverything:domain:0.1'
-
-    //pf4j
-    shadow "org.pf4j:pf4j:$pf4jVersion"
-    kapt "org.pf4j:pf4j:$pf4jVersion"
-    annotationProcessor "org.pf4j:pf4j:$pf4jVersion"
 
     //pf4j
     shadow "org.pf4j:pf4j:$pf4jVersion"
