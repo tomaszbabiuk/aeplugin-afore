@@ -1,0 +1,3 @@
+rootProject.name = 'aeplugin-afore'
+
+includeBuild "../automate-everything"
