@@ -10,7 +10,7 @@ git clone https://github.com/tomaszbabiuk/automate-everything.git
 git clone https://github.com/tomaszbabiuk/aeplugin-afore.git
 ```
 
-# Frontend installation
+# Automate-Everything frontend installation
 ```bash
 cd automate-everything
 cd ae-frontent
@@ -19,7 +19,7 @@ npm run build
 ```
 After running this commands, the website is installed in the 'automate-everything/output/web' folder
 
-# Backend installation
+# Automate-Everything backend installation
 ```bash
 cd automate-everyhing
 gradlew.bat assembleBackend
