@@ -30,10 +30,9 @@ class AforePlugin(
     private val eventBus: EventBus) : HardwarePlugin(wrapper), PluginMetadata {
 
     override fun createAdapters(): List<HardwareAdapter<*>> {
-        val result = ArrayList<HardwareAdapter<*>>()
-        val adapter = AforeAdapter(pluginId, lanGatewayResolver, eventBus)
-        result.add(adapter)
-        return result
+        return listOf(
+            AforeAdapter(pluginId, lanGatewayResolver, eventBus)
+        )
     }
 
     override fun start() {
