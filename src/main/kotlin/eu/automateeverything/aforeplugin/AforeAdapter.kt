@@ -15,6 +15,7 @@
 
 package eu.automateeverything.aforeplugin
 
+import eu.automateeverything.data.hardware.AdapterState
 import eu.automateeverything.domain.events.EventBus
 import eu.automateeverything.domain.hardware.DiscoveryMode
 import eu.automateeverything.domain.hardware.HardwareAdapterBase
@@ -34,7 +35,7 @@ class AforeAdapter(
     private val lanGatewayResolver: LanGatewayResolver,
     eventBus: EventBus
 ) : HardwareAdapterBase<AforeWattagePort>(owningPluginId, "0", eventBus) {
-    var operationScope: CoroutineScope? = null
+    private var operationScope: CoroutineScope? = null
     private val httpClient = createHttpClient()
     private val idBuilder = PortIdBuilder(owningPluginId)
 
@@ -55,7 +56,7 @@ class AforeAdapter(
                     maxConnectionsPerRoute = 100
                     pipelineMaxSize = 20
                     keepAliveTime = 5000
-                    connectTimeout = 10000
+                    connectTimeout = 30000
                     connectAttempts = 5
                 }
             }
@@ -90,10 +91,7 @@ class AforeAdapter(
             val aforeDevices = discoveryJob.await()
 
             aforeDevices.forEach {
-                eventBus.broadcastDiscoveryEvent(
-                    owningPluginId,
-                    "AFORE inverter found, IP:${it.first}, s/n:${it.second}"
-                )
+                logDiscovery("AFORE inverter found, IP:${it.first}, s/n:${it.second}")
                 val portId = idBuilder.buildPortId(it.second, 0.toString(), "W")
                 val inverterPort =
                     AforeWattagePort(
@@ -108,14 +106,14 @@ class AforeAdapter(
             }
         }
 
-        eventBus.broadcastDiscoveryEvent(owningPluginId, "Finished")
+        logDiscovery("Finished")
 
         addPotentialNewPorts(result)
     }
 
     private suspend fun maintenanceLoop(now: Calendar) {
-        ports.values.forEach {
-            it.refresh(now)
+        if (state == AdapterState.Operating) {
+            ports.values.forEach { it.refresh(now) }
             delay(30000)
         }
     }

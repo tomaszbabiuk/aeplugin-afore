@@ -60,11 +60,12 @@ class AforeWattagePort(
         val newValue = readInverterPower()
         if (cachedValue.value != newValue) {
             cachedValue = Wattage(newValue)
+            notifyValueUpdate()
         }
     }
 
     private suspend fun readInverterPower(): BigDecimal {
-        val inverterResponse = httpClient.get<String>("http://$inetAddress/status.html")
+        val inverterResponse = httpClient.get<String>("http:/$inetAddress/status.html")
         val lines = inverterResponse.split(";").toTypedArray()
         for (line in lines) {
             if (line.contains("webdata_now_p")) {
