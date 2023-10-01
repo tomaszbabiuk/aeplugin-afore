@@ -88,11 +88,13 @@ class AforeFinder(
                     i.toByte())
             )
 
-            val job = async(start = CoroutineStart.LAZY) {
-                checkIfAfore(ipToCheck, eventBus)
-            }
+            if (isReachable(ipToCheck)) {
+                val job = async(start = CoroutineStart.LAZY) {
+                    checkIfAfore(ipToCheck, eventBus)
+                }
 
-            jobs.add(job)
+                jobs.add(job)
+            }
         }
 
         val result = jobs.awaitAll()
@@ -102,6 +104,14 @@ class AforeFinder(
         broadcastEvent(eventBus,"Done looking for AFORE devices, found: ${result.size}")
 
         result
+    }
+
+    private fun isReachable(inetAddress: InetAddress): Boolean {
+        return try {
+            inetAddress.isReachable(1000)
+        } catch (ignored: Exception) {
+            false
+        }
     }
 
     private fun broadcastEvent(eventBus: EventBus, message: String) {

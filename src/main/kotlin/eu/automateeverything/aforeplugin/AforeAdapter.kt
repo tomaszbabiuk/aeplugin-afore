@@ -16,7 +16,6 @@
 package eu.automateeverything.aforeplugin
 
 import eu.automateeverything.domain.events.EventBus
-import eu.automateeverything.domain.events.PortUpdateType
 import eu.automateeverything.domain.hardware.DiscoveryMode
 import eu.automateeverything.domain.hardware.HardwareAdapterBase
 import eu.automateeverything.domain.hardware.PortIdBuilder
@@ -27,61 +26,62 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.features.auth.*
 import io.ktor.client.features.auth.providers.*
 import io.ktor.client.features.json.*
-import kotlinx.coroutines.*
 import java.util.*
+import kotlinx.coroutines.*
 
 class AforeAdapter(
     owningPluginId: String,
     private val lanGatewayResolver: LanGatewayResolver,
-    eventBus: EventBus) : HardwareAdapterBase<AforeWattageInputPort>(owningPluginId, "0", eventBus) {
+    eventBus: EventBus
+) : HardwareAdapterBase<AforeWattagePort>(owningPluginId, "0", eventBus) {
     var operationScope: CoroutineScope? = null
     private val httpClient = createHttpClient()
     private val idBuilder = PortIdBuilder(owningPluginId)
 
-    private fun createHttpClient() = HttpClient(CIO) {
-        install(JsonFeature) {
-            serializer = GsonSerializer()
-        }
+    private fun createHttpClient() =
+        HttpClient(CIO) {
+            install(JsonFeature) { serializer = GsonSerializer() }
 
-        install(Auth) {
-            basic {
-                credentials {
-                    BasicAuthCredentials(username = "admin", password = "admin")
+            install(Auth) {
+                basic {
+                    credentials { BasicAuthCredentials(username = "admin", password = "admin") }
+                }
+            }
+
+            engine {
+                maxConnectionsCount = 1000
+
+                endpoint {
+                    maxConnectionsPerRoute = 100
+                    pipelineMaxSize = 20
+                    keepAliveTime = 5000
+                    connectTimeout = 10000
+                    connectAttempts = 5
                 }
             }
         }
 
-        engine {
-            maxConnectionsCount = 1000
-
-            endpoint {
-                maxConnectionsPerRoute = 100
-                pipelineMaxSize = 20
-                keepAliveTime = 5000
-                connectTimeout = 10000
-                connectAttempts = 5
-            }
-        }
-    }
-
     override suspend fun internalDiscovery(mode: DiscoveryMode) = coroutineScope {
-        val result = ArrayList<AforeWattageInputPort>()
+        val result = ArrayList<AforeWattagePort>()
         logDiscovery("Starting AFORE discovery")
 
         val lanGateways: List<LanGateway> = lanGatewayResolver.resolve()
-        val lanGateway: LanGateway? = when (lanGateways.size) {
-            0 -> {
-                logDiscovery("Cannot resolve LAN gateway... aborting!")
-                null
+        val lanGateway: LanGateway? =
+            when (lanGateways.size) {
+                0 -> {
+                    logDiscovery("Cannot resolve LAN gateway... aborting!")
+                    null
+                }
+                1 -> {
+                    lanGateways.first()
+                }
+                else -> {
+                    logDiscovery(
+                        "There's more than one LAN gateways. Using the first one: ${lanGateways.first().interfaceName}!"
+                    )
+                    lanGateways.first()
+                }
             }
-            1 -> {
-                lanGateways.first()
-            }
-            else -> {
-                logDiscovery("There's more than one LAN gateways. Using the first one: ${lanGateways.first().interfaceName}!")
-                lanGateways.first()
-            }
-        }
 
         if (lanGateway != null) {
             val machineIPAddress = lanGateway.inet4Address
@@ -90,9 +90,20 @@ class AforeAdapter(
             val aforeDevices = discoveryJob.await()
 
             aforeDevices.forEach {
-                eventBus.broadcastDiscoveryEvent(owningPluginId,"AFORE inverter found, IP:${it.first}, s/n:${it.second}")
+                eventBus.broadcastDiscoveryEvent(
+                    owningPluginId,
+                    "AFORE inverter found, IP:${it.first}, s/n:${it.second}"
+                )
                 val portId = idBuilder.buildPortId(it.second, 0.toString(), "W")
-                val inverterPort = AforeWattageInputPort(portId, httpClient, it.first)
+                val inverterPort =
+                    AforeWattagePort(
+                        owningPluginId,
+                        adapterId,
+                        portId,
+                        eventBus,
+                        httpClient,
+                        it.first
+                    )
                 result.add(inverterPort)
             }
         }
@@ -105,15 +116,12 @@ class AforeAdapter(
     private suspend fun maintenanceLoop(now: Calendar) {
         ports.values.forEach {
             it.refresh(now)
-            it.lastSeenTimestamp = now.timeInMillis
-            broadcastPortUpdate(PortUpdateType.LastSeenChange, it)
-
             delay(30000)
         }
     }
 
     override fun executePendingChanges() {
-        //This adapter is read-only
+        // This adapter is read-only
     }
 
     override fun stop() {
@@ -133,4 +141,3 @@ class AforeAdapter(
         }
     }
 }
-

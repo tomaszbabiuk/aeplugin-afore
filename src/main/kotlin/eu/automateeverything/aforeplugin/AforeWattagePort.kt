@@ -15,8 +15,9 @@
 
 package eu.automateeverything.aforeplugin
 
-import eu.automateeverything.domain.hardware.InputPort
+import eu.automateeverything.domain.events.EventBus
 import eu.automateeverything.domain.hardware.Port
+import eu.automateeverything.domain.hardware.PortCapabilities
 import eu.automateeverything.domain.hardware.Wattage
 import io.ktor.client.*
 import io.ktor.client.request.*
@@ -24,30 +25,34 @@ import java.math.BigDecimal
 import java.net.InetAddress
 import java.util.*
 
-class AforeWattageInputPort(
-    override val id: String,
+class AforeWattagePort(
+    factoryId: String,
+    adapterId: String,
+    portId: String,
+    eventBus: EventBus,
     private val httpClient: HttpClient,
     private val inetAddress: InetAddress
-) : Port<Wattage>, InputPort<Wattage> {
-
-    override val valueClazz = Wattage::class.java
-
-    override val sleepInterval: Long
-        get() = 1000 * 60 * 5L
-
-    override var lastSeenTimestamp = 0L
+) :
+    Port<Wattage>(
+        factoryId,
+        adapterId,
+        portId,
+        eventBus,
+        Wattage::class.java,
+        PortCapabilities(canRead = true, canWrite = false),
+        1000 * 60 * 5L
+    ) {
 
     suspend fun refresh(now: Calendar) {
         try {
             refreshInverterData()
-            lastSeenTimestamp = now.timeInMillis
-        } catch (ignored: Exception) {
-        }
+            updateLastSeenTimeStamp(now.timeInMillis)
+        } catch (ignored: Exception) {}
     }
 
     private var cachedValue = Wattage(BigDecimal.ZERO)
 
-    override fun read(): Wattage {
+    override fun readInternal(): Wattage {
         return cachedValue
     }
 
