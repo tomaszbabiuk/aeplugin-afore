@@ -15,7 +15,6 @@ git clone https://github.com/tomaszbabiuk/aeplugin-afore.git
 cd automate-everything
 cd ae-frontent
 npm install
-export NODE_OPTIONS=--openssl-legacy-provider
 npm run build
 ```
 After running this commands, the website is installed in the 'automate-everything/output/web' folder
